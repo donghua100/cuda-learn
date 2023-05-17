@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 
 #define DATA_SIZE 1024*1024
+#define THRREADS_NUM 256
 
 int data[DATA_SIZE];
 
@@ -38,11 +39,13 @@ int init_cuda() {
 }
 
 __global__ static void sumOfSquares(int *nums, int *result) {
+	const int tid = threadIdx.x;
+	const int size = DATA_SIZE/THRREADS_NUM;
 	int sum = 0;
-	for (int i = 0; i < DATA_SIZE; i++) {
+	for (int i = tid * size; i < (tid + 1)*size && i < DATA_SIZE; i++) {
 		sum += nums[i] * nums[i];
 	}
-	*result = sum;
+	result[tid] = sum;
 }
 
 int main() {
@@ -58,30 +61,32 @@ int main() {
 	clock_t start = clock();
 	int *gpudata, *result;
 	cudaMalloc((void **)&gpudata, sizeof(int)*DATA_SIZE);
-	cudaMalloc((void **)&result, sizeof(int));
+	cudaMalloc((void **)&result, sizeof(int)*THRREADS_NUM);
 	cudaMemcpy(gpudata, data, sizeof(int)*DATA_SIZE, cudaMemcpyHostToDevice);
 
-	sumOfSquares<<<1,1,0>>>(gpudata, result);
+	sumOfSquares<<<1,THRREADS_NUM,0>>>(gpudata, result);
 
-	int sum;
-	cudaMemcpy(&sum, result, sizeof(int), cudaMemcpyDeviceToHost);
+	int sum[THRREADS_NUM];
+	cudaMemcpy(&sum, result, sizeof(int)*THRREADS_NUM, cudaMemcpyDeviceToHost);
 	cudaFree(gpudata);
 	cudaFree(result);
 
 	cudaDeviceSynchronize();
 	clock_t end = clock();
 
+	int final_sum = 0;
+	for (int i = 0; i < THRREADS_NUM; i++) final_sum += sum[i];
 
-	printf("(GPU) sum = %d, using time: %lf ms\n", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
+	printf("(GPU) sum = %d, using time: %lf ms\n", final_sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
 
-	sum = 0;
+	final_sum = 0;
 	start = clock();
 	for (int i = 0; i < DATA_SIZE; i++) {
-		sum += data[i] * data[i];
+		final_sum += data[i] * data[i];
 	}
 	end = clock();
 	// printf("(CPU) sum = %d, using time: %ld\n", sum, time_used);
-	printf("(CPU) sum = %d, using time: %lf ms\n", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
+	printf("(CPU) sum = %d, using time: %lf ms\n", final_sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
 
 	return 0;
 }

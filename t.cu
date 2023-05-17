@@ -72,7 +72,7 @@ int main() {
 	clock_t end = clock();
 
 
-	printf("(GPU) sum = %d, using time: %lf\n ms", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
+	printf("(GPU) sum = %d, using time: %lf ms\n", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
 
 	sum = 0;
 	start = clock();
@@ -81,7 +81,7 @@ int main() {
 	}
 	end = clock();
 	// printf("(CPU) sum = %d, using time: %ld\n", sum, time_used);
-	printf("(CPU) sum = %d\n, using time: %lf\n ms", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
+	printf("(CPU) sum = %d\n, using time: %lf ms\n", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
 
 	return 0;
 }

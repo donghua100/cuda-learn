@@ -40,9 +40,8 @@ int init_cuda() {
 
 __global__ static void sumOfSquares(int *nums, int *result) {
 	const int tid = threadIdx.x;
-	const int size = DATA_SIZE/THRREADS_NUM;
 	int sum = 0;
-	for (int i = tid * size; i < (tid + 1)*size && i < DATA_SIZE; i++) {
+	for (int i = tid; i < DATA_SIZE ; i += THRREADS_NUM) {
 		sum += nums[i] * nums[i];
 	}
 	result[tid] = sum;

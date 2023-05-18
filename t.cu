@@ -55,21 +55,21 @@ int main() {
 	}
 	generate_nums(data, DATA_SIZE);
 
-	clock_t start = clock();
 	int *gpudata, *result;
 	cudaMalloc((void **)&gpudata, sizeof(int)*DATA_SIZE);
 	cudaMalloc((void **)&result, sizeof(int));
 	cudaMemcpy(gpudata, data, sizeof(int)*DATA_SIZE, cudaMemcpyHostToDevice);
 
+	clock_t start = clock();
 	sumOfSquares<<<1,1,0>>>(gpudata, result);
+	cudaDeviceSynchronize();
+	clock_t end = clock();
 
 	int sum;
 	cudaMemcpy(&sum, result, sizeof(int), cudaMemcpyDeviceToHost);
 	cudaFree(gpudata);
 	cudaFree(result);
 
-	cudaDeviceSynchronize();
-	clock_t end = clock();
 
 
 	printf("(GPU) sum = %d, using time: %lf ms\n", sum, (double)(end - start)/CLOCKS_PER_SEC*1000);

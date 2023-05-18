@@ -57,21 +57,21 @@ int main() {
 	}
 	generate_nums(data, DATA_SIZE);
 
-	clock_t start = clock();
 	int *gpudata, *result;
 	cudaMalloc((void **)&gpudata, sizeof(int)*DATA_SIZE);
 	cudaMalloc((void **)&result, sizeof(int)*THRREADS_NUM);
 	cudaMemcpy(gpudata, data, sizeof(int)*DATA_SIZE, cudaMemcpyHostToDevice);
 
+	clock_t start = clock();
 	sumOfSquares<<<1,THRREADS_NUM,0>>>(gpudata, result);
+	cudaDeviceSynchronize();
+	clock_t end = clock();
 
 	int sum[THRREADS_NUM];
 	cudaMemcpy(&sum, result, sizeof(int)*THRREADS_NUM, cudaMemcpyDeviceToHost);
 	cudaFree(gpudata);
 	cudaFree(result);
 
-	cudaDeviceSynchronize();
-	clock_t end = clock();
 
 	int final_sum = 0;
 	for (int i = 0; i < THRREADS_NUM; i++) final_sum += sum[i];

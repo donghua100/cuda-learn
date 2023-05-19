@@ -55,8 +55,8 @@ __global__ static void sumOfSquares(int *nums, int *result) {
 		for (int i = 1; i < THRREADS_NUM; i++) {
 			shared[0] += shared[i];
 		}
+	    result[bid] = shared[0];
 	}
-	result[bid] = shared[0];
 }
 
 int main() {
@@ -75,11 +75,11 @@ int main() {
 	cudaMemcpy(gpudata, data, sizeof(int)*DATA_SIZE, cudaMemcpyHostToDevice);
 
 	clock_t start = clock();
-	sumOfSquares<<<BLOCK_NUM,THRREADS_NUM,0>>>(gpudata, result);
+	sumOfSquares<<<BLOCK_NUM,THRREADS_NUM,sizeof(int) * THRREADS_NUM>>>(gpudata, result);
 	cudaDeviceSynchronize();
 	clock_t end = clock();
 
-	int sum[THRREADS_NUM * BLOCK_NUM];
+	int sum[BLOCK_NUM];
 	cudaMemcpy(&sum, result, sizeof(int) * BLOCK_NUM, cudaMemcpyDeviceToHost);
 	cudaFree(gpudata);
 	cudaFree(result);

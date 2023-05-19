@@ -40,15 +40,23 @@ int init_cuda() {
 }
 
 __global__ static void sumOfSquares(int *nums, int *result) {
+	extern __shared__ int shared [];
+
 	const int tid = threadIdx.x;
 	const int bid = blockIdx.x;
 
+	shared[tid] = 0;
 
-	int sum = 0;
 	for (int i = bid * THRREADS_NUM + tid; i < DATA_SIZE; i += BLOCK_NUM * THRREADS_NUM) {
-		sum += nums[i] * nums[i];
+		shared[tid] += nums[i] * nums[i];
 	}
-	result[bid * THRREADS_NUM + tid] = sum;
+	__syncthreads();
+	if (tid == 0) {
+		for (int i = 1; i < THRREADS_NUM; i++) {
+			shared[0] += shared[i];
+		}
+	}
+	result[bid] = shared[0];
 }
 
 int main() {
@@ -63,7 +71,7 @@ int main() {
 
 	int *gpudata, *result;
 	cudaMalloc((void **)&gpudata, sizeof(int)*DATA_SIZE);
-	cudaMalloc((void **)&result, sizeof(int)*THRREADS_NUM*BLOCK_NUM);
+	cudaMalloc((void **)&result, sizeof(int)*BLOCK_NUM);
 	cudaMemcpy(gpudata, data, sizeof(int)*DATA_SIZE, cudaMemcpyHostToDevice);
 
 	clock_t start = clock();
@@ -72,13 +80,13 @@ int main() {
 	clock_t end = clock();
 
 	int sum[THRREADS_NUM * BLOCK_NUM];
-	cudaMemcpy(&sum, result, sizeof(int)*THRREADS_NUM * BLOCK_NUM, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&sum, result, sizeof(int) * BLOCK_NUM, cudaMemcpyDeviceToHost);
 	cudaFree(gpudata);
 	cudaFree(result);
 
 
 	int final_sum = 0;
-	for (int i = 0; i < THRREADS_NUM * BLOCK_NUM; i++) final_sum += sum[i];
+	for (int i = 0; i < BLOCK_NUM; i++) final_sum += sum[i];
 
 	printf("(GPU) sum = %d, using time: %lf ms\n", final_sum, (double)(end - start)/CLOCKS_PER_SEC*1000);
 
